@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #ffffff; /* talvez queira usar #000000 no modo dark? */
+    --foreground: #000000;
+  }
+}
+
+html, body {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  background-color: var(--background); /* ou remova se quiser que o Tailwind controle */
+  color: var(--foreground);
+}
