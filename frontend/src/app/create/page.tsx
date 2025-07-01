@@ -182,7 +182,7 @@ export default function Create() {
     <div className="flex flex-col">
       <input
         type="text"
-        placeholder="national"
+        placeholder="CPF"
         className="w-45 p-2 border border-gray-300 rounded-md focus:outline-none"
         value={national}
         onChange={e => setNational(FormatNational(e.target.value))}
