@@ -239,7 +239,7 @@ export default function Create() {
               type="date"
               className="w-45 p-2 border border-gray-300 rounded-md focus:outline-none"
               value={birthdate}
-               onChange={(e) => setBirthdate(e.target.value)}
+              onChange={(e) => setBirthdate(e.target.value)}
               min="1900-01-01"
               max={new Date().toISOString().split("T")[0]}
             />

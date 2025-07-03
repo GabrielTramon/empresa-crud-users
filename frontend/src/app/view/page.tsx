@@ -11,52 +11,47 @@ import { z } from "zod";
 import { FormatName } from "@/utils/formatName";
 import { FormatContact } from "@/utils/formatContact";
 import { FormatNational } from "@/utils/formatNationalId";
+import { toast } from "react-toastify";
 
 const userSchema = z.object({
   name: z.string().min(3, "Deve ter pelo menos 3 letras"),
   email: z.string().email("email inválido"),
-  password: z
-    .string()
-    .min(8, "no mínimo 8 amigão")
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-      "A senha deve conter letras maiúsculas, minúsculas, números e caracteres especiais"
-    ),
   national: z.string().min(14, "CPF invalido"),
   contact: z.string().min(15, "Numero de telefone invalido"),
   birthdate: z.preprocess(
     (arg) => {
       if (typeof arg === "string") {
-        const date = new Date(arg + "T00:00:00"); // força horário local
+        const date = new Date(arg + "T00:00:00");
         return isNaN(date.getTime()) ? undefined : date;
       }
+
+      if (arg instanceof Date && !isNaN(arg.getTime())) {
+        return arg;
+      }
+
+      if (typeof arg === "number") {
+        const date = new Date(arg);
+        return isNaN(date.getTime()) ? undefined : date;
+      }
+
       return undefined;
     },
     z
       .date({
-        required_error: "Data invalida",
+        required_error: "Data inválida",
         invalid_type_error: "Data inválida",
+      })
+      .refine((date) => date >= new Date("1900-01-01"), {
+        message: "Data antiga inválida",
       })
       .refine(
         (date) => {
-          // Data mínima: 1900-01-01
-          const minDate = new Date("1900-01-01");
-          return date >= minDate;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return date <= today;
         },
         {
-          message: "Data antiga invalida",
-        }
-      )
-      .refine(
-        (date) => {
-          // Data máxima: hoje (não pode ser no futuro)
-          const maxDate = new Date();
-          // Ignora hora para só comparar datas
-          maxDate.setHours(0, 0, 0, 0);
-          return date <= maxDate;
-        },
-        {
-          message: "Data futura invalida",
+          message: "Data futura inválida",
         }
       )
   ),
@@ -76,8 +71,8 @@ export default function View() {
   const [userIdToDelete, setUserIdToDelete] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  //const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
-  
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
     if (storedUserId) {
@@ -99,6 +94,57 @@ export default function View() {
       (field) => field?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    const result = userSchema.safeParse({
+      name: selectedUser.name,
+      email: selectedUser.email,
+      national: selectedUser.national,
+      contact: selectedUser.contact,
+      birthdate: new Date(selectedUser.birthdate).toISOString().split("T")[0],
+    });
+    const errors: { [key: string]: string } = {};
+
+    if (!result.success && result.error) {
+      const formatted = result.error.format();
+      for (const field in formatted) {
+        const fieldError = formatted[field as keyof typeof formatted];
+
+        // Verifica se é objeto com _errors
+        if (
+          typeof fieldError === "object" &&
+          fieldError !== null &&
+          "_errors" in fieldError &&
+          Array.isArray(fieldError._errors) &&
+          fieldError._errors.length > 0
+        ) {
+          errors[field] = fieldError._errors[0];
+        }
+        // Caso seja string[]
+        else if (Array.isArray(fieldError) && fieldError.length > 0) {
+          errors[field] = fieldError[0];
+        }
+      }
+    }
+
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length === 0) {
+      updateUser({
+        id: selectedUser.id,
+        name: selectedUser.name,
+        email: selectedUser.email,
+        contact: selectedUser.contact,
+        national: selectedUser.national,
+        birthdate: selectedUser.birthdate,
+        updatedById: currentUserId,
+      });
+      setIsModalOpenCreate(false);
+      setSelectedUser(null);
+    }
+  }
 
   return (
     <div className="flex flex-col items-center w-full min-h-screen mt-4">
@@ -198,106 +244,181 @@ export default function View() {
             setSelectedUser(null);
           }}
         >
-          <div className="flex flex-col gap-4 px-4 py-2">
-            <h2 className="text-3xl font-semibold text-center mb-4 text-gray-900">
-              Editar usuário
-            </h2>
-            <input
-              type="text"
-              className="border p-2 rounded"
-              placeholder="Nome"
-              value={selectedUser?.name || ""}
-              maxLength={50}
-              onChange={(e) =>
-                setSelectedUser({
-                  ...selectedUser,
-                  name: FormatName(e.target.value),
-                })
-              }
-            />
-            <input
-              type="tel"
-              className="border p-2 rounded"
-              maxLength={15}
-              placeholder="Contato"
-              value={selectedUser?.contact || ""}
-              onChange={(e) =>
-                setSelectedUser({
-                  ...selectedUser,
-                  contact: FormatContact(e.target.value),
-                })
-              }
-            />
-            <input
-              type="email"
-              className="border p-2 rounded"
-              placeholder="Email"
-              value={selectedUser?.email || ""}
-              onChange={(e) =>
-                setSelectedUser({ ...selectedUser, email: e.target.value })
-              }
-            />
-            <input
-              type="text"
-              className="border p-2 rounded"
-              placeholder="CPF"
-              maxLength={14}
-              value={selectedUser?.national || ""}
-              onChange={(e) =>
-                setSelectedUser({
-                  ...selectedUser,
-                  national: FormatNational(e.target.value),
-                })
-              }
-            />
-            <input
-              type="date"
-              className="border p-2 rounded"
-              value={
-                selectedUser?.birthdate
-                  ? new Date(selectedUser.birthdate).toISOString().split("T")[0]
-                  : ""
-              }
-              onChange={(e) =>
-                setSelectedUser({
-                  ...selectedUser,
-                  birthdate: e.target.value, // deixe como string aqui
-                })
-              }
-            />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-bold text-blue-600">
+                Editar usuário
+              </h2>
+              <p className="text-gray-500 mt-1">Atualize os dados do usuário</p>
+            </div>
 
-            <div className="flex justify-center mt-4 gap-4">
+            <div className="space-y-4">
+              {/* Campo Nome */}
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Nome Completo
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  placeholder="Digite o nome"
+                  value={selectedUser?.name || ""}
+                  maxLength={50}
+                  onChange={(e) =>
+                    setSelectedUser({
+                      ...selectedUser,
+                      name: FormatName(e.target.value),
+                    })
+                  }
+                />
+                {formErrors.name && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+                )}
+              </div>
+
+              {/* Campo Contato */}
+              <div>
+                <label
+                  htmlFor="contact"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Telefone
+                </label>
+                <input
+                  id="contact"
+                  type="tel"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  maxLength={15}
+                  placeholder="(00) 00000-0000"
+                  value={selectedUser?.contact || ""}
+                  onChange={(e) =>
+                    setSelectedUser({
+                      ...selectedUser,
+                      contact: FormatContact(e.target.value),
+                    })
+                  }
+                />
+                {formErrors.contact && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {formErrors.contact}
+                  </p>
+                )}
+              </div>
+
+              {/* Campo Email */}
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  E-mail
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  placeholder="seu@email.com"
+                  value={selectedUser?.email || ""}
+                  onChange={(e) =>
+                    setSelectedUser({ ...selectedUser, email: e.target.value })
+                  }
+                />
+                {formErrors.email && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {formErrors.email}
+                  </p>
+                )}
+              </div>
+
+              {/* Campos CPF e Data Nascimento (em linha) */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="national"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    CPF
+                  </label>
+                  <input
+                    id="national"
+                    type="text"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    value={selectedUser?.national || ""}
+                    onChange={(e) =>
+                      setSelectedUser({
+                        ...selectedUser,
+                        national: FormatNational(e.target.value),
+                      })
+                    }
+                  />
+                  {formErrors.national && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.national}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="birthdate"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Data Nascimento
+                  </label>
+                  <input
+                    id="birthdate"
+                    type="date"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    min="1900-01-01"
+                    max={new Date().toISOString().split("T")[0]}
+                    value={
+                      selectedUser?.birthdate
+                        ? new Date(selectedUser.birthdate)
+                            .toISOString()
+                            .split("T")[0]
+                        : ""
+                    }
+                    onChange={(e) =>
+                      setSelectedUser({
+                        ...selectedUser,
+                        birthdate: e.target.value,
+                      })
+                    }
+                  />
+                  {formErrors.birthdate && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {formErrors.birthdate}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center  space-x-3 pt-4">
               <button
-                className="w-32 h-10 rounded-2xl bg-gray-300 hover:bg-gray-200 cursor-pointer"
+                type="button"
                 onClick={() => {
                   setIsModalOpenCreate(false);
                   setSelectedUser(null);
                 }}
+                className="w-32 h-10  border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
-                className="w-32 h-10 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white cursor-pointer"
-                onClick={() => {
-                  if (selectedUser) {
-                    updateUser({
-                      id: selectedUser.id,
-                      name: selectedUser.name,
-                      email: selectedUser.email,
-                      contact: selectedUser.contact,
-                      national: selectedUser.national,
-                      birthdate: selectedUser.birthdate,
-                      updatedById: currentUserId,
-                    });
-                    setIsModalOpenCreate(false);
-                    setSelectedUser(null);
-                  }
-                }}
+                type="submit"
+                className="w-32 h-10  bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors cursor-pointer "
               >
-                Alterar
+                Salvar
               </button>
             </div>
-          </div>
+          </form>
         </Modal>
 
         {/* Modal Deletar */}
@@ -316,17 +437,17 @@ export default function View() {
             </h2>
             <div className="flex justify-center mt-5 gap-4">
               <button
-                className="w-32 h-10 rounded-2xl bg-gray-300 hover:bg-gray-200 cursor-pointer"
+                className="w-32 h-10  border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 onClick={() => {
                   setIsModalOpenDelete(false);
                   setUserIdToDelete(null);
                   setSelectedUser(null);
                 }}
               >
-                Voltar
+                Cancelar
               </button>
               <button
-                className="w-32 h-10 rounded-2xl bg-red-500 hover:bg-red-600 text-white cursor-pointer"
+                className="w-32 h-10 bg-red-500 rounded-lg font-medium text-white hover:bg-red-600 transition-colors cursor-pointer"
                 onClick={() => {
                   if (userIdToDelete) {
                     deleteUser({
@@ -349,7 +470,7 @@ export default function View() {
           isOpen={isModalOpenEdit}
           onClose={() => setModalOpenEdit(false)}
         >
-          <h1 className="text-3xl font-semibold text-center mt-5 text-gray-900">
+          <h1 className="text-3xl font-bold text-blue-600 mt-5">
             Detalhes do Usuário
           </h1>
           <div className="mt-10 space-y-1">
@@ -400,7 +521,7 @@ export default function View() {
           </div>
           <div className="flex justify-center mt-8">
             <button
-              className="w-32 h-10 rounded-2xl bg-gray-300 hover:bg-gray-200 cursor-pointer"
+              className="w-32 h-10  border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
               onClick={() => setModalOpenEdit(false)}
             >
               Voltar
