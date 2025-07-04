@@ -2,7 +2,7 @@
 import { Pencil, Trash, SearchIcon, ArrowLeft } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { useDeleteUser } from "@/hooks/useDeleteUser";
-import { useUpdateUser } from "@/hooks/useUpdateUser"; // ⬅️ Novo hook
+import { useUpdateUser } from "@/hooks/useUpdateUser";
 import Modal from "@/components/modal";
 import { useEffect, useState } from "react";
 import ModalView from "@/components/modalView";
@@ -94,6 +94,13 @@ export default function View() {
     }
   }, []);
 
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [totalPages]);
+  
+  ''
   if (isLoading)
     return <div className="text-center mt-10">Carregando usuários...</div>;
   if (error)
@@ -159,7 +166,6 @@ export default function View() {
       setSelectedUser(null);
     }
   }
-
   return (
     <div className="flex flex-col items-center w-full min-h-screen">
       <div className="flex flex-col items-center p-5 w-full max-w-lg">
@@ -543,39 +549,36 @@ export default function View() {
           </div>
         </ModalView>
       </div>
-      <div className="flex items-center justify-between w-full max-w-lg mx-auto px-4">
-        {/* Take no canto esquerdo */}
-        <div>
+
+      <div className="flex w-full justify-between px-18 pb-10 mt-2">
+        <div className="flex">
           <select
             value={take}
             onChange={(e) => setTake(Number(e.target.value))}
-            className="border border-gray-300 rounded px-2 py-1"
           >
             <option value={10}>10</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
           </select>
         </div>
-
-        {/* Botões no centro */}
         <div className="flex gap-4">
           <button
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
-            className="hover:text-blue-600 cursor-pointer disabled:opacity-50"
+            className="hover:text-blue-600 cursor-pointer"
           >
             Anterior
           </button>
           <button
-            onClick={() => setPage(page + 1)}
-            disabled={(totalPages) === page}
+            onClick={() => {
+              setPage(page + 1);
+            }}
+            disabled={totalPages <= page}
             className="hover:text-blue-600 cursor-pointer"
           >
             Próxima
           </button>
         </div>
-
-        {/* Número da página no canto direito */}
         <div>
           <span className="font-semibold">Página {page}</span>
           <span className="font-semibold"> de {totalPages}</span>
