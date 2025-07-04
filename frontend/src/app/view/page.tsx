@@ -99,8 +99,7 @@ export default function View() {
       setPage(totalPages);
     }
   }, [totalPages]);
-  
-  ''
+
   if (isLoading)
     return <div className="text-center mt-10">Carregando usuários...</div>;
   if (error)
@@ -109,12 +108,6 @@ export default function View() {
         Erro ao carregar usuários.
       </div>
     );
-
-  const filteredUsers = usersArray.filter((user) =>
-    [user.name, user.email, user.national, user.contact, user.id].some(
-      (field) => field?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -205,8 +198,8 @@ export default function View() {
             </tr>
           </thead>
           <tbody>
-            {filteredUsers && filteredUsers.length > 0 ? (
-              filteredUsers.map((user: any) => (
+            {usersArray.length > 0 ? (
+              usersArray.map((user: any) => (
                 <tr
                   key={user.id}
                   onDoubleClick={() => {
