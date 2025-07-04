@@ -1,6 +1,5 @@
 "use client";
-
-import { Pencil, Trash, SearchIcon } from "lucide-react";
+import { Pencil, Trash, SearchIcon, ArrowLeft } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { useDeleteUser } from "@/hooks/useDeleteUser";
 import { useUpdateUser } from "@/hooks/useUpdateUser"; // ⬅️ Novo hook
@@ -11,7 +10,6 @@ import { z } from "zod";
 import { FormatName } from "@/utils/formatName";
 import { FormatContact } from "@/utils/formatContact";
 import { FormatNational } from "@/utils/formatNationalId";
-import { toast } from "react-toastify";
 
 const userSchema = z.object({
   name: z.string().min(3, "Deve ter pelo menos 3 letras"),
@@ -24,7 +22,6 @@ const userSchema = z.object({
         const date = new Date(arg + "T00:00:00");
         return isNaN(date.getTime()) ? undefined : date;
       }
-
       if (arg instanceof Date && !isNaN(arg.getTime())) {
         return arg;
       }
@@ -58,7 +55,6 @@ const userSchema = z.object({
 });
 
 export default function View() {
-  const { data: users, isLoading, error } = useUsers();
   const { mutate: deleteUser } = useDeleteUser();
   const { mutate: updateUser } = useUpdateUser(); // ⬅️ Novo hook
 
@@ -66,12 +62,30 @@ export default function View() {
   const [isModalOpenEdit, setModalOpenEdit] = useState(false);
   const [isModalOpenCreate, setIsModalOpenCreate] = useState(false);
   const [isModalOpenDelete, setIsModalOpenDelete] = useState(false);
-
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [userIdToDelete, setUserIdToDelete] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
+  const [page, setPage] = useState(1);
+  const [take, setTake] = useState(10);
+  const [orderField, setOrderField] = useState("name");
+  const [orderDirection, setOrderDirection] = useState<"asc" | "desc">("asc");
+
+  const {
+    data: users,
+    isLoading,
+    error,
+  } = useUsers({
+    page,
+    take,
+    search: searchTerm,
+    orderField,
+    orderDirection,
+  });
+
+  const usersArray = users?.data ?? [];
+  const totalPages = users?.totalPages ?? 1;
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
@@ -89,7 +103,7 @@ export default function View() {
       </div>
     );
 
-  const filteredUsers = users?.filter((user: any) =>
+  const filteredUsers = usersArray.filter((user) =>
     [user.name, user.email, user.national, user.contact, user.id].some(
       (field) => field?.toLowerCase().includes(searchTerm.toLowerCase())
     )
@@ -147,7 +161,7 @@ export default function View() {
   }
 
   return (
-    <div className="flex flex-col items-center w-full min-h-screen mt-4">
+    <div className="flex flex-col items-center w-full min-h-screen">
       <div className="flex flex-col items-center p-5 w-full max-w-lg">
         <div className="flex text-center items-center gap-3">
           <h1 className="text-3xl text-blue-600 font-bold">
@@ -157,13 +171,13 @@ export default function View() {
         </div>
         <input
           type="text"
-          className="w-2xl h-10 px-4 border-2 border-gray-400 rounded-2xl mt-3 outline-none"
+          className="w-2xl h-10 px-4 border-2 border-gray-300 rounded mt-2 outline-none"
           placeholder="Pesquisar por nome, E-mail, CPF ou contato"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
-      <div className="bg-white w-11/12 mt-8 border border-gray-300 rounded-2xl">
+      <div className="bg-white w-11/12 border border-gray-200 rounded">
         <table className="min-w-full">
           <thead className="sticky top-0 bg-gray-50 text-blue-700 z-10">
             <tr>
@@ -195,7 +209,7 @@ export default function View() {
                   }}
                   className="border-t border-gray-200 hover:bg-blue-50 cursor-pointer"
                 >
-                  <td className="px-8 py-3">{user.name}</td>
+                  <td className="px-8 py-3 h-16">{user.name}</td>
                   <td className="px-8 py-3">{user.email}</td>
                   <td className="px-4 py-3">{user.national}</td>
                   <td className="px-4 py-3">{user.contact}</td>
@@ -264,7 +278,7 @@ export default function View() {
                 <input
                   id="name"
                   type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none transition-all"
                   placeholder="Digite o nome"
                   value={selectedUser?.name || ""}
                   maxLength={50}
@@ -291,7 +305,7 @@ export default function View() {
                 <input
                   id="contact"
                   type="tel"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none transition-all"
                   maxLength={15}
                   placeholder="(00) 00000-0000"
                   value={selectedUser?.contact || ""}
@@ -320,7 +334,7 @@ export default function View() {
                 <input
                   id="email"
                   type="email"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none transition-all"
                   placeholder="seu@email.com"
                   value={selectedUser?.email || ""}
                   onChange={(e) =>
@@ -346,7 +360,7 @@ export default function View() {
                   <input
                     id="national"
                     type="text"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none transition-all"
                     placeholder="000.000.000-00"
                     maxLength={14}
                     value={selectedUser?.national || ""}
@@ -374,7 +388,7 @@ export default function View() {
                   <input
                     id="birthdate"
                     type="date"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none transition-all"
                     min="1900-01-01"
                     max={new Date().toISOString().split("T")[0]}
                     value={
@@ -413,7 +427,7 @@ export default function View() {
               </button>
               <button
                 type="submit"
-                className="w-32 h-10  bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors cursor-pointer "
+                className="w-32 h-10  bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:outline-none focus:ring-offset-2 transition-colors cursor-pointer "
               >
                 Salvar
               </button>
@@ -528,6 +542,44 @@ export default function View() {
             </button>
           </div>
         </ModalView>
+      </div>
+      <div className="flex items-center justify-between w-full max-w-lg mx-auto px-4">
+        {/* Take no canto esquerdo */}
+        <div>
+          <select
+            value={take}
+            onChange={(e) => setTake(Number(e.target.value))}
+            className="border border-gray-300 rounded px-2 py-1"
+          >
+            <option value={10}>10</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+        </div>
+
+        {/* Botões no centro */}
+        <div className="flex gap-4">
+          <button
+            disabled={page === 1}
+            onClick={() => setPage(page - 1)}
+            className="hover:text-blue-600 cursor-pointer disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <button
+            onClick={() => setPage(page + 1)}
+            disabled={(totalPages) === page}
+            className="hover:text-blue-600 cursor-pointer"
+          >
+            Próxima
+          </button>
+        </div>
+
+        {/* Número da página no canto direito */}
+        <div>
+          <span className="font-semibold">Página {page}</span>
+          <span className="font-semibold"> de {totalPages}</span>
+        </div>
       </div>
     </div>
   );

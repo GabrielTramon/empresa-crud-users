@@ -1,4 +1,3 @@
-// src/server.ts
 import "reflect-metadata";
 import express from "express";
 import { userRoutes } from "./modules/users/routes/userRouter";

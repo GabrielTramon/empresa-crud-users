@@ -1,17 +1,14 @@
 import { Router } from "express";
 import { CreateUserController } from "../useCases/create/createUserController";
-import { FindAllUsersController } from "../useCases/findAll/findAllUsersController";
 import { FindByIdUsersController } from "../useCases/findById/findByIdUsersController";
-
 import { UsersRepository } from "../infra/prisma/repositories/userRepository";
-
-import { FindAllUsersUseCase } from "../useCases/findAll/findAllUserUseCase";
 import { FindByIdUsersUseCase } from "../useCases/findById/FindByIdUsersUseCase";
 import { UpdateUserUseCase } from "../useCases/update/updateUsersUseCase";
 import { UpdateUserController } from "../useCases/update/updateUsersController";
 import { DeleteUserUseCase } from "../useCases/delete/deleteUserUseCase";
 import { DeleteUserController } from "../useCases/delete/deleteUserController";
-
+import { FindAllUsersController } from "../useCases/listUsers/listUserController";
+import { FindAllUsersUseCase } from "../useCases/listUsers/listUserUseCase";
 
 const userRoutes = Router();
 
@@ -23,16 +20,11 @@ userRoutes.post("/users", (req, res) => {
   return createUserController.handle(req, res);
 });
 
-// FIND ALL
-const findAllUsersUseCase = new FindAllUsersUseCase(userRepository);
-const findAllUsersController = new FindAllUsersController(findAllUsersUseCase);
-userRoutes.get("/users/all", (req, res) => {
-  return findAllUsersController.handle(req, res);
-});
-
 // FIND BY ID
 const findByIdUsersUseCase = new FindByIdUsersUseCase(userRepository);
-const findByIdUsersController = new FindByIdUsersController(findByIdUsersUseCase);
+const findByIdUsersController = new FindByIdUsersController(
+  findByIdUsersUseCase
+);
 userRoutes.get("/users/user/:id", (req, res) => {
   return findByIdUsersController.handle(req, res);
 });
@@ -50,6 +42,12 @@ userRoutes.patch("/users/user/:id/delete", (req, res) => {
   return deleteUserController.handle(req, res);
 });
 
+// FIND ALL USERS (com paginação, ordenação, busca)
+const findAllUsersUseCase = new FindAllUsersUseCase(userRepository);
+const findAllUsersController = new FindAllUsersController(findAllUsersUseCase);
+userRoutes.get("/users", (req, res) => {
+  return findAllUsersController.handle(req, res);
+});
 
 
 export { userRoutes };

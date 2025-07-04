@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsDate, IsEmail, IsString, IsStrongPassword, minLength, } from "class-validator";
+import { IsDate, IsEmail, IsString, IsStrongPassword    , } from "class-validator";
 
 export class CreateUserDTO {
     @IsString()
