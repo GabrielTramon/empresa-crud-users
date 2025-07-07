@@ -11,15 +11,14 @@ export class ListUserDTO {
   })
   take: number = 10;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   search?: string;
 
   @IsOptional()
-  @IsIn(["name", "email", "createdAt", "updatedAt"]) // ex: campos que seu backend permite ordenar
   orderField?: string;
 
   @IsOptional()
   @IsIn(["asc", "desc"])
-  orderDirection: "asc" | "desc" = "asc";
+  orderDirection?: "asc" | "desc";
 }

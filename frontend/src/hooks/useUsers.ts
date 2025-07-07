@@ -45,15 +45,14 @@ export function useUsers(params: UseUsersParams = {}) {
           search,
           orderField,
           orderDirection,
+          // Adicione um parâmetro para filtrar deletados no backend
+          isDeleted: false
         },
       });
 
-      const filteredData = response.data.data.filter(
-        (user: User) => !user.isDeleted
-      );
-
+      // Remova o filtro local para manter a consistência da paginação e ordenação
       return {
-        data: filteredData,
+        data: response.data.data,
         totalPages: response.data.totalPages,
       };
     },

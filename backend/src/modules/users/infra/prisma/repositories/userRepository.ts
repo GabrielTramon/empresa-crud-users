@@ -47,18 +47,8 @@ export class UsersRepository implements IUserRepository {
     return this.mapUserToEntity(user);
   }
 
-  async findAll(params: ListUserDTO): Promise<UserEntity[]> {
-    const {
-      page = 1,
-      take = 10,
-      search,
-      orderField = "name",
-      orderDirection = "asc",
-    } = params;
-
-    const skip = (page - 1) * take;
-
-    const users = await prisma.user.findMany({
+  async findAll({ page, take, search, orderField, orderDirection }: ListUserDTO) {
+    return await prisma.user.findMany({
       where: {
         isDeleted: false,
         OR: search
@@ -68,18 +58,16 @@ export class UsersRepository implements IUserRepository {
               { national: { contains: search, mode: "insensitive" } },
               { contact: { contains: search, mode: "insensitive" } },
             ]
-          : undefined,
+          : undefined, // 👈 se não tem search, ignora
       },
-      skip,
-      take,
       orderBy: {
         [orderField]: orderDirection,
       },
+      skip: (page - 1) * take,
+      take,
     });
-
-    return users.map((user) => this.mapUserToEntity(user));
   }
-
+  
   async findById(id: string): Promise<UserEntity | null> {
     const user = await prisma.user.findUnique({
       where: { id },

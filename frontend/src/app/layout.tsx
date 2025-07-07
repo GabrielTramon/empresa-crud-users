@@ -10,7 +10,7 @@ interface RootLayoutProps {
 }
 
 export const metadata = {
-  title: 'BE1 foda',
+  title: 'BE1',
   description: 'Descrição do site',
   icons: {
     icon: '/favicon.ico',

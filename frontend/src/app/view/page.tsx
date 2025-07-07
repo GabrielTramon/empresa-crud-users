@@ -1,5 +1,12 @@
 "use client";
-import { Pencil, Trash, SearchIcon, ArrowLeft } from "lucide-react";
+import {
+  Pencil,
+  Trash,
+  SearchIcon,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown 
+} from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { useDeleteUser } from "@/hooks/useDeleteUser";
 import { useUpdateUser } from "@/hooks/useUpdateUser";
@@ -104,6 +111,13 @@ export default function View() {
   }, [searchTerm]);
 
   useEffect(() => {
+    if (!orderField) {
+      setOrderField("name");
+      setOrderDirection("asc");
+    }
+  }, []);
+
+  useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
     if (storedUserId) {
       setCurrentUserId(storedUserId);
@@ -115,6 +129,34 @@ export default function View() {
       setPage(totalPages);
     }
   }, [totalPages]);
+
+  const handleOrder = (field: string) => {
+    const validOrderFields = [
+      "name",
+      "email",
+      "national",
+      "contact",
+      "createdAt",
+      "updatedAt",
+      "birthdate",
+    ];
+
+    if (!validOrderFields.includes(field)) {
+      console.warn(`Campo ${field} não é ordenável`);
+      return;
+    }
+
+    const isSameField = orderField === field;
+    const newDirection = isSameField
+      ? orderDirection === "asc"
+        ? "desc"
+        : "asc"
+      : "asc"; // padrão
+
+    setOrderField(field);
+    setOrderDirection(newDirection);
+    setPage(1);
+  };
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -166,6 +208,13 @@ export default function View() {
       setSelectedUser(null);
     }
   }
+
+  function getOrderIcon(currentField: string, orderField: string, orderDirection: string) {
+    if (currentField !== orderField) return <ChevronsUpDown className="inline w-4 h-4 text-gray-400" />;
+    if (orderDirection === "asc") return <ChevronUp className="inline w-4 h-4" />;
+    return <ChevronDown className="inline w-4 h-4" />;
+  }
+  
   return (
     <div className="flex flex-col items-center w-full min-h-screen">
       <div className="flex flex-col items-center w-full max-w-lg">
@@ -187,17 +236,29 @@ export default function View() {
         <table className="min-w-full">
           <thead className="sticky top-0 bg-gray-50 text-blue-700 z-10">
             <tr>
-              <th className="px-8 py-3 text-left rounded-tl-2xl border-b border-gray-300">
-                Nome
+              <th
+                onClick={() => handleOrder("name")}
+                className="px-8 py-3 text-left rounded-tl-2xl border-b border-gray-300 cursor-pointer"
+              >
+                Nome {getOrderIcon("name", orderField, orderDirection)}
               </th>
-              <th className="px-8 py-3 text-left border-b border-gray-300">
-                E-mail
+              <th
+                onClick={() => handleOrder("email")}
+                className="px-8 py-3 text-left border-b border-gray-300 cursor-pointer"
+              >
+                E-mail {getOrderIcon("email", orderField, orderDirection)}
               </th>
-              <th className="px-4 py-3 text-left border-b border-gray-300">
-                CPF
+              <th
+                onClick={() => handleOrder("national")}
+                className="px-4 py-3 text-left border-b border-gray-300"
+              >
+                CPF {getOrderIcon("national", orderField, orderDirection)}
               </th>
-              <th className="px-4 py-3 text-left border-b border-gray-300">
-                Contato
+              <th
+                className="px-4 py-3 text-left border-b border-gray-300"
+                onClick={() => handleOrder("contact")}
+              >
+                Contato {getOrderIcon("contact", orderField, orderDirection)}
               </th>
               <th className="px-4 py-3 text-left rounded-tr-2xl border-b border-gray-300">
                 Ações
