@@ -11,19 +11,20 @@ export class UsersRepository implements IUserRepository {
   async countAll(params: Partial<ListUserDTO>): Promise<number> {
     const { search } = params;
 
-    return await prisma.user.count({
-      where: {
-        isDeleted: false,
-        OR: search
-          ? [
-              { name: { contains: search, mode: "insensitive" } },
-              { email: { contains: search, mode: "insensitive" } },
-              { national: { contains: search } },
-              { contact: { contains: search } },
-            ]
-          : undefined,
-      },
-    });
+    const where: any = {
+      isDeleted: false,
+    };
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { national: { contains: search } },
+        { contact: { contains: search } },
+      ];
+    }
+
+    return await prisma.user.count({ where });
   }
 
   async create(data: CreateUserDTO, createdById: string): Promise<UserEntity> {

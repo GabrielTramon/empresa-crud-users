@@ -64,6 +64,8 @@ export default function View() {
   const [isModalOpenDelete, setIsModalOpenDelete] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [userIdToDelete, setUserIdToDelete] = useState<string | null>(null);
+
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
@@ -79,13 +81,27 @@ export default function View() {
   } = useUsers({
     page,
     take,
-    search: searchTerm,
+    search: debouncedSearch,
     orderField,
     orderDirection,
   });
 
   const usersArray = users?.data ?? [];
   const totalPages = users?.totalPages ?? 1;
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500); // aguarda 500ms depois do último caractere
+
+    return () => {
+      clearTimeout(handler); // limpa o timeout se o usuário continuar digitando
+    };
+  }, [searchTerm]);
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
@@ -99,15 +115,6 @@ export default function View() {
       setPage(totalPages);
     }
   }, [totalPages]);
-
-  if (isLoading)
-    return <div className="text-center mt-10">Carregando usuários...</div>;
-  if (error)
-    return (
-      <div className="text-center mt-10 text-red-500">
-        Erro ao carregar usuários.
-      </div>
-    );
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -161,7 +168,7 @@ export default function View() {
   }
   return (
     <div className="flex flex-col items-center w-full min-h-screen">
-      <div className="flex flex-col items-center p-5 w-full max-w-lg">
+      <div className="flex flex-col items-center w-full max-w-lg">
         <div className="flex text-center items-center gap-3">
           <h1 className="text-3xl text-blue-600 font-bold">
             Pesquisar Usuário
@@ -170,13 +177,13 @@ export default function View() {
         </div>
         <input
           type="text"
-          className="w-2xl h-10 px-4 border-2 border-gray-300 rounded mt-2 outline-none"
+          className="w-2xl h-10 px-4 border-2 border-gray-300 rounded-2xl outline-none"
           placeholder="Pesquisar por nome, E-mail, CPF ou contato"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
-      <div className="bg-white w-11/12 border border-gray-200 rounded">
+      <div className="bg-white w-11/12 border border-gray-200 rounded mt-4">
         <table className="min-w-full">
           <thead className="sticky top-0 bg-gray-50 text-blue-700 z-10">
             <tr>
@@ -242,7 +249,9 @@ export default function View() {
             ) : (
               <tr>
                 <td colSpan={5} className="text-center p-4">
-                  Nenhum usuário encontrado.
+                  {searchTerm
+                    ? `Nenhum resultado para "${searchTerm}"`
+                    : "Nenhum usuário encontrado."}
                 </td>
               </tr>
             )}
@@ -556,9 +565,13 @@ export default function View() {
         </div>
         <div className="flex gap-4">
           <button
-            disabled={page === 1}
+            disabled={page <= 1}
             onClick={() => setPage(page - 1)}
-            className="hover:text-blue-600 cursor-pointer"
+            className={`${
+              page <= 1
+                ? "text-gray-400 cursor-default"
+                : "cursor-pointer hover:text-blue-700"
+            }`}
           >
             Anterior
           </button>
@@ -566,15 +579,19 @@ export default function View() {
             onClick={() => {
               setPage(page + 1);
             }}
-            disabled={totalPages <= page}
-            className="hover:text-blue-600 cursor-pointer"
+            disabled={totalPages <= page || page === 0}
+            className={`${
+              totalPages <= page || page === 0
+                ? "text-gray-400 cursor-default"
+                : "cursor-pointer hover:text-blue-700"
+            }`}
           >
             Próxima
           </button>
         </div>
         <div>
-          <span className="font-semibold">Página {page}</span>
-          <span className="font-semibold"> de {totalPages}</span>
+          <span className="font-semibold">Página {page < 1 ? 0 : page}</span>
+          <span className="font-semibold"> de {page < 1 ? 0 : totalPages}</span>
         </div>
       </div>
     </div>
